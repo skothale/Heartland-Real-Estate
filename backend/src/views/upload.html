@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Upload document</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+        color: #1a1a1a;
+        background: #f4f4f5;
+      }
+      body {
+        max-width: 32rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      label {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        margin-top: 0.25rem;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 1.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid #18181b;
+        background: #18181b;
+        color: #fafafa;
+        border-radius: 0.375rem;
+      }
+      button:hover {
+        background: #27272a;
+      }
+      #status {
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+      }
+      .hint {
+        font-size: 0.8125rem;
+        color: #52525b;
+        margin-top: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Upload PDF</h1>
+    <p class="hint">PDFs up to 10 MB. Files are stored under <code>src/pdfs/</code>.</p>
+    <form id="form" enctype="multipart/form-data">
+      <label for="file">PDF file *</label>
+      <input id="file" name="file" type="file" accept="application/pdf,.pdf" required />
+
+      <label for="title">Title</label>
+      <input id="title" name="title" type="text" placeholder="Optional — defaults from filename" />
+
+      <label for="description">Description</label>
+      <input id="description" name="description" type="text" placeholder="Optional" />
+
+      <button type="submit">Upload</button>
+    </form>
+    <p id="status" role="status"></p>
+    <script>
+      const form = document.getElementById("form");
+      const statusEl = document.getElementById("status");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        statusEl.textContent = "Uploading…";
+        const fd = new FormData(form);
+        try {
+          const res = await fetch("/api/documents", { method: "POST", body: fd });
+          const text = await res.text();
+          let body;
+          try {
+            body = JSON.parse(text);
+          } catch {
+            body = text;
+          }
+          if (!res.ok) {
+            statusEl.textContent =
+              "Error " + res.status + ": " + (typeof body === "object" ? body.message || JSON.stringify(body) : body);
+            return;
+          }
+          statusEl.textContent = "Created document id: " + (body._id || body.id) + "\n" + JSON.stringify(body, null, 2);
+          form.reset();
+        } catch (err) {
+          statusEl.textContent = "Network error: " + err.message;
+        }
+      });
+    </script>
+  </body>
+</html>
