@@ -1,22 +1,5 @@
 const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
 const multer = require('multer');
-
-const pdfDir = path.join(__dirname, '../pdfs');
-
-fs.mkdirSync(pdfDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, pdfDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const suffix = ext === '.pdf' ? ext : '.pdf';
-    cb(null, `${crypto.randomUUID()}${suffix}`);
-  },
-});
 
 function pdfFileFilter(_req, file, cb) {
   const ext = path.extname(file.originalname || '').toLowerCase();
@@ -33,7 +16,7 @@ function pdfFileFilter(_req, file, cb) {
 }
 
 module.exports = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: pdfFileFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
 });

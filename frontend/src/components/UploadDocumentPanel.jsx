@@ -7,6 +7,8 @@ import {
 } from 'react';
 import { FileText, UploadCloud } from 'lucide-react';
 import { apiUrl } from '../config/api.js';
+import { getStoredToken } from '../auth/token.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 function formatBytes(n) {
   if (n < 1024) return `${n} B`;
@@ -18,6 +20,7 @@ const UploadDocumentPanel = forwardRef(function UploadDocumentPanel(
   { onUploadSuccess },
   ref
 ) {
+  const { logout } = useAuth();
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState('');
   const [file, setFile] = useState(null);
@@ -88,6 +91,10 @@ const UploadDocumentPanel = forwardRef(function UploadDocumentPanel(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', apiUrl('/api/documents'));
     xhr.responseType = 'text';
+    const token = getStoredToken();
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         setProgress(Math.round((e.loaded / e.total) * 100));
@@ -107,6 +114,9 @@ const UploadDocumentPanel = forwardRef(function UploadDocumentPanel(
           setErrorMessage('Invalid server response');
         }
       } else {
+        if (xhr.status === 401) {
+          logout();
+        }
         let msg = xhr.statusText;
         try {
           const j = JSON.parse(xhr.responseText || '{}');
@@ -125,7 +135,7 @@ const UploadDocumentPanel = forwardRef(function UploadDocumentPanel(
       setErrorMessage('Network error');
     };
     xhr.send(fd);
-  }, [file, title, onUploadSuccess]);
+  }, [file, title, onUploadSuccess, logout]);
 
   const showProgress = phase === 'uploading' || phase === 'success' || phase === 'error';
   const indeterminate = phase === 'uploading' && progress === null;

@@ -3,8 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
 
 const documentRoutes = require('./routes/documentRoutes');
+const authRoutes = require('./routes/authRoutes');
+const agentRoutes = require('./routes/agentRoutes');
+const userRoutes = require('./routes/userRoutes');
+const openapi = require('./openapi');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -19,7 +24,8 @@ app.use(
         logger.info(message.trim());
       },
     },
-    skip: (req) => req.path === '/health',
+    skip: (req) =>
+      req.path === '/health' || req.path.startsWith('/api-docs'),
   })
 );
 
@@ -27,10 +33,26 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api-docs.json', (_req, res) => {
+  res.json(openapi);
+});
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(openapi, {
+    customSiteTitle: 'Heartland API docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+  })
+);
+
 app.get('/upload', (_req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'upload.html'));
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/agents', agentRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/documents', documentRoutes);
 
 app.use((err, req, res, _next) => {

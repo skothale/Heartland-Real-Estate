@@ -11,6 +11,19 @@ const MONGODB_URI =
 
 async function start() {
   try {
+    if (!process.env.JWT_SECRET) {
+      if (process.env.NODE_ENV === 'production') {
+        logger.error(
+          'JWT_SECRET is not set. Set it before running in production.'
+        );
+        process.exit(1);
+      }
+      process.env.JWT_SECRET = 'heartland-dev-only-change-for-production';
+      logger.warn(
+        'JWT_SECRET not set; using insecure development default. Add JWT_SECRET to your .env file.'
+      );
+    }
+
     await mongoose.connect(MONGODB_URI);
     logger.info('Connected to MongoDB');
 

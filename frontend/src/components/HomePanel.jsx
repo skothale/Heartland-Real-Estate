@@ -1,207 +1,251 @@
+import { useMemo } from 'react';
 import {
   Building2,
-  FileCheck,
-  MapPin,
-  Construction,
-  Upload,
-  Files,
-  Sparkles,
+  Plus,
+  ChevronRight,
+  Calendar,
+  ClipboardCheck,
+  FileText,
+  TrendingUp,
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext.jsx';
 
-const IMG = {
-  hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&w=1200&q=80',
-  neighborhood:
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&w=800&q=80',
-  signing:
-    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&w=800&q=80',
-  skyline:
-    'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=800&h=500&q=80',
-};
+function titleFromEmail(email) {
+  if (!email) return 'Welcome';
+  const raw = String(email).split('@')[0] || 'Welcome';
+  const name = raw
+    .replace(/[._-]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => p.slice(0, 1).toUpperCase() + p.slice(1))
+    .join(' ');
+  return name || 'Welcome';
+}
 
-export default function HomePanel({ onGoToUploadDocument }) {
+function formatMoneyShort(value) {
+  if (value == null) return '—';
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
+export default function HomePanel({ onGoToUploadDocument, onGoToDocuments }) {
+  const { user } = useAuth();
+  const displayName = String(user?.name || '').trim() || titleFromEmail(user?.email);
+
+  const stats = useMemo(
+    () => [
+      { label: 'Sales volume pending', value: formatMoneyShort(3_170_000) },
+      { label: 'Commission pending', value: formatMoneyShort(80_600) },
+      { label: 'Closing clients pending', value: '7' },
+      { label: 'Anniversaries this month', value: '9' },
+    ],
+    []
+  );
+
+  const clients = useMemo(
+    () => [
+      {
+        id: '1194-carlin',
+        title: '1194 Carlin Drive',
+        subtitle: 'Fort Worth, TX 76108',
+        days: 525,
+        stage: 0.72,
+        assignees: ['James Lin', 'Thomas Smith', 'Mary Thomas', 'Carlos Ortega'],
+      },
+      {
+        id: '4928-dexter',
+        title: '4928 Dexter Avenue',
+        subtitle: 'Dallas, TX 75218',
+        days: 459,
+        stage: 0.46,
+        assignees: ['Thomas Smith', 'Mary Thomas', 'Carlos Ortega'],
+      },
+      {
+        id: '6641-stone',
+        title: '6641 Stone Pike Lane',
+        subtitle: 'Plano, TX 75024',
+        days: 264,
+        stage: 0.58,
+        assignees: ['Mary Thomas', 'Carlos Ortega', 'Kelley Thompson'],
+      },
+      {
+        id: '444-dove',
+        title: '444 Dove Lane',
+        subtitle: 'Austin, TX 78704',
+        days: 198,
+        stage: 0.33,
+        assignees: ['Carlos Ortega', 'Kelley Thompson'],
+      },
+      {
+        id: '409-mccam',
+        title: '409 McCambridge Ave',
+        subtitle: 'Madison, WI 53705',
+        days: 182,
+        stage: 0.64,
+        assignees: ['Kelley Thompson'],
+      },
+    ],
+    []
+  );
+
+  const tasks = useMemo(
+    () => [
+      {
+        id: 'closing-gift',
+        title: 'Closing gift for seller',
+        subtitle: '1194 Valley View Ln · Claudia Garrison',
+        icon: Calendar,
+      },
+      {
+        id: 'prep-closing',
+        title: 'Prepare closing gift for buyer',
+        subtitle: '1194 Carlin Drive · James Lin',
+        icon: ClipboardCheck,
+      },
+      {
+        id: 'executed',
+        title: 'Executed contract',
+        subtitle: '444 Dove Lane · Carlos Ortega',
+        icon: FileText,
+      },
+      {
+        id: 'survey',
+        title: 'Inspection survey if applicable',
+        subtitle: '6641 Stone Pike Lane · Mary Thomas',
+        icon: TrendingUp,
+      },
+    ],
+    []
+  );
+
   return (
     <div className="home-panel">
-      <section className="home-hero-split">
-        <div className="home-hero-split__text">
-          <p className="home-eyebrow">Heartland Real Estate</p>
-          <h1 className="home-title">
-            The paperwork side of property made clearer for your team
-          </h1>
-          <p className="home-lead">
-            Every sale and lease generates PDFs: disclosures, amendments, HOA packets, title
-            summaries, and broker correspondence. Heartland gives your brokerage a single place
-            to <strong>upload</strong> those files, <strong>see what is on file</strong>, and track
-            status as we add search and review tools.
-          </p>
-        </div>
-        <div className="home-hero-split__visual">
-          <img
-            src={IMG.hero}
-            alt="Modern residential architecture at dusk, representing Heartland properties"
-            width={640}
-            height={420}
-            loading="eager"
-            decoding="async"
-            className="home-hero-split__img"
-          />
-          <p className="home-hero-split__caption">
-            Photo: residential community — the kind of portfolio your documents support every day.
-          </p>
-        </div>
-      </section>
-
-      <section className="home-gallery" aria-label="Real estate in context">
-        <figure className="home-gallery__item">
-          <img
-            src={IMG.neighborhood}
-            alt="Suburban homes along a street"
-            width={400}
-            height={260}
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption>Listings &amp; leases live on streets and spreadsheets—but proof lives in PDFs.</figcaption>
-        </figure>
-        <figure className="home-gallery__item">
-          <img
-            src={IMG.signing}
-            alt="Hands reviewing documents and keys on a desk"
-            width={400}
-            height={260}
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption>Closings depend on clean files: contracts, addenda, and lender packages.</figcaption>
-        </figure>
-        <figure className="home-gallery__item">
-          <img
-            src={IMG.skyline}
-            alt="City skyline with office towers"
-            width={400}
-            height={260}
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption>Commercial teams juggle even more counterparties and version history.</figcaption>
-        </figure>
-      </section>
-
-      <section className="home-about" aria-labelledby="home-about-heading">
-        <h2 id="home-about-heading" className="home-section-title">
-          Why real estate needs a document hub
-        </h2>
-        <div className="home-about__grid">
-          <p>
-            Brokers and transaction coordinators rarely lose deals because of missing email—they
-            lose time hunting for the <em>right PDF revision</em> across inboxes, drives, and
-            transaction software exports. Regulators and broker-owners alike care that disclosures
-            and agency forms are complete and retrievable.
-          </p>
-          <p>
-            Heartland starts with <strong>secure PDF storage</strong> tied to a simple record
-            (title, file name, size, status). That foundation supports the next steps: portfolio
-            views, client-specific folders, and assisted review of common contract clauses.
-          </p>
-        </div>
-      </section>
-
-      <section className="home-app" aria-labelledby="home-app-heading">
-        <h2 id="home-app-heading" className="home-section-title">
-          What this app does today
-        </h2>
-        <ul className="home-app__cards">
-          <li className="home-app__card">
-            <div className="home-app__card-icon" aria-hidden>
-              <Upload size={22} strokeWidth={1.75} />
+      <div className="rt-home">
+        <header className="rt-home__top">
+          <div className="rt-home__welcome">
+            <div className="rt-home__avatar" aria-hidden>
+              <Building2 size={18} strokeWidth={2} />
             </div>
-            <h3>Upload Document</h3>
-            <p>
-              Add PDFs up to 10 MB with an optional title. You get a live progress bar while the
-              file is sent to the server, then a confirmation with the saved document ID.
-            </p>
-          </li>
-          <li className="home-app__card">
-            <div className="home-app__card-icon" aria-hidden>
-              <Files size={22} strokeWidth={1.75} />
+            <div className="rt-home__welcome-text">
+              <p className="rt-home__eyebrow">Welcome</p>
+              <h1 className="rt-home__name">{displayName}</h1>
+              <p className="rt-home__meta">
+                {user?.role === 'admin'
+                  ? 'Admin workspace'
+                  : 'Agent workspace'}
+              </p>
             </div>
-            <h3>Documents</h3>
-            <p>
-              Browse everything your team has uploaded: titles, file names, sizes, status, and
-              timestamps—so you can audit what is on file before a closing or compliance check.
-            </p>
-          </li>
-          <li className="home-app__card">
-            <div className="home-app__card-icon home-app__card-icon--muted" aria-hidden>
-              <Sparkles size={22} strokeWidth={1.75} />
-            </div>
-            <h3>Coming next</h3>
-            <p>
-              Search across text inside PDFs, deal rooms per property, and guided review for
-              leases and purchase agreements—built on the same document core you use now.
-            </p>
-          </li>
-        </ul>
-      </section>
+          </div>
 
-      <div className="home-wip">
-        <div className="home-wip__icon" aria-hidden>
-          <Construction size={22} strokeWidth={1.75} />
-        </div>
-        <div>
-          <p className="home-wip__title">Work in progress</p>
-          <p className="home-wip__text">
-            Upload and document list are live. Search, workspaces, and automated review are in
-            active development—try an upload to see the end-to-end flow today.
-          </p>
+          <button type="button" className="rt-home__cta" onClick={onGoToUploadDocument}>
+            <Plus size={16} strokeWidth={2.2} />
+            Upload PDF
+          </button>
+        </header>
+
+        <section className="rt-home__stats" aria-label="Overview stats">
+          {stats.map((s) => (
+            <div key={s.label} className="rt-stat">
+              <p className="rt-stat__label">{s.label}</p>
+              <p className="rt-stat__value">{s.value}</p>
+            </div>
+          ))}
+        </section>
+
+        <div className="rt-home__grid">
+          <section className="rt-card rt-card--clients" aria-label="Pending clients">
+            <div className="rt-card__head">
+              <h2 className="rt-card__title">Pending clients</h2>
+              <button type="button" className="rt-card__link" onClick={onGoToDocuments}>
+                View documents <ChevronRight size={16} strokeWidth={2.25} />
+              </button>
+            </div>
+
+            <ul className="rt-clients">
+              {clients.map((c) => (
+                <li key={c.id} className="rt-client">
+                  <div className="rt-client__thumb" aria-hidden />
+                  <div className="rt-client__main">
+                    <div className="rt-client__row">
+                      <div className="rt-client__id">
+                        <p className="rt-client__title">{c.title}</p>
+                        <p className="rt-client__sub">{c.subtitle}</p>
+                      </div>
+                      <span className="rt-client__pill">{c.days} days past</span>
+                    </div>
+
+                    <div className="rt-client__progress" aria-label="Progress">
+                      <div className="rt-progress">
+                        <div className="rt-progress__track" aria-hidden />
+                        <div
+                          className="rt-progress__fill"
+                          style={{ width: `${Math.round(c.stage * 100)}%` }}
+                          aria-hidden
+                        />
+                        <div
+                          className="rt-progress__dot"
+                          style={{ left: `${Math.round(c.stage * 100)}%` }}
+                          aria-hidden
+                        />
+                      </div>
+                      <div className="rt-progress__labels" aria-hidden>
+                        <span>Inspection phase</span>
+                        <span>Title policy / appraisal</span>
+                        <span>Closing</span>
+                      </div>
+                    </div>
+
+                    <div className="rt-client__assignees" aria-label="Assignees">
+                      {c.assignees.slice(0, 3).map((a) => (
+                        <span key={a} className="rt-client__assignee">
+                          {a}
+                        </span>
+                      ))}
+                      {c.assignees.length > 3 && (
+                        <span className="rt-client__assignee rt-client__assignee--more">
+                          +{c.assignees.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <aside className="rt-side" aria-label="Today">
+            <section className="rt-card rt-card--tasks">
+              <div className="rt-card__head">
+                <div>
+                  <p className="rt-side__date">
+                    Today · {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </p>
+                  <h2 className="rt-card__title">Property tasks</h2>
+                </div>
+              </div>
+
+              <ul className="rt-tasks">
+                {tasks.map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <li key={t.id} className="rt-task">
+                      <div className="rt-task__icon" aria-hidden>
+                        <Icon size={18} strokeWidth={1.9} />
+                      </div>
+                      <div className="rt-task__body">
+                        <p className="rt-task__title">{t.title}</p>
+                        <p className="rt-task__sub">{t.subtitle}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </aside>
         </div>
       </div>
-
-      <ul className="home-points">
-        <li>
-          <span className="home-points__icon">
-            <Building2 size={18} strokeWidth={1.75} />
-          </span>
-          <div>
-            <strong>Built for brokerages</strong>
-            <span>Aligns with how deals actually move—from first showing to file retention.</span>
-          </div>
-        </li>
-        <li>
-          <span className="home-points__icon">
-            <FileCheck size={18} strokeWidth={1.75} />
-          </span>
-          <div>
-            <strong>Audit-friendly</strong>
-            <span>Each upload is stored with metadata you can reference in reviews and trainings.</span>
-          </div>
-        </li>
-        <li>
-          <span className="home-points__icon">
-            <MapPin size={18} strokeWidth={1.75} />
-          </span>
-          <div>
-            <strong>Heartland-first</strong>
-            <span>Designed for Midwest markets, timelines, and the mix of residential and small commercial work.</span>
-          </div>
-        </li>
-      </ul>
-
-      <div className="home-actions">
-        <button type="button" className="btn-primary" onClick={onGoToUploadDocument}>
-          Upload a document
-        </button>
-        <p className="home-actions__hint">
-          Opens the Upload Document tab with drag-and-drop and progress tracking.
-        </p>
-      </div>
-
-      <p className="home-photo-credit">
-        Photos via{' '}
-        <a href="https://unsplash.com" target="_blank" rel="noreferrer noopener">
-          Unsplash
-        </a>{' '}
-        (community, signing, skyline).
-      </p>
     </div>
   );
 }

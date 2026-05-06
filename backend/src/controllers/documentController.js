@@ -1,6 +1,8 @@
-const fs = require('fs/promises');
 const path = require('path');
+const mongoose = require('mongoose');
 
+const User = require('../models/User');
+const Document = require('../models/Document');
 const documentService = require('../services/documentService');
 const logger = require('../utils/logger');
 
@@ -26,12 +28,41 @@ async function listDocuments(req, res, next) {
     );
     const skip = Math.max(Number.isNaN(skipRaw) ? 0 : skipRaw, 0);
 
-    const result = await documentService.listDocuments({}, { limit, skip });
+    let filter;
+    if (req.userRole === 'agent') {
+      filter = { owner: req.userId };
+    } else {
+      const agentIdParam = String(req.query.agentId || '').trim();
+      if (agentIdParam) {
+        const agentOk = await User.exists({
+          _id: agentIdParam,
+          adminId: req.userId,
+          role: 'agent',
+        });
+        if (!agentOk) {
+          return res.status(400).json({ message: 'Invalid or unknown agent' });
+        }
+        filter = { owner: agentIdParam };
+      } else {
+        const agents = await User.find({ adminId: req.userId, role: 'agent' })
+          .select('_id')
+          .lean();
+        const ownerIds = agents.map((a) => a._id);
+        ownerIds.push(new mongoose.Types.ObjectId(req.userId));
+        filter = { owner: { $in: ownerIds } };
+      }
+    }
+
+    const result = await documentService.listDocuments(filter, {
+      limit,
+      skip,
+    });
     logger.debug('Documents listed', {
       total: result.total,
       returned: result.items.length,
       limit,
       skip,
+      role: req.userRole,
     });
     return res.json(result);
   } catch (err) {
@@ -49,45 +80,77 @@ async function uploadDocument(req, res, next) {
 
     const payload = pickAllowedBody(req.body, UPLOAD_BODY_FIELDS);
     payload.fileName = req.file.originalname;
-    payload.filePath = path
-      .join('pdfs', req.file.filename)
-      .replace(/\\/g, '/');
     payload.mimeType = 'application/pdf';
     payload.fileSize = req.file.size;
+    payload.fileData = req.file.buffer;
     if (!payload.title) {
       payload.title =
         path.parse(req.file.originalname || '').name || 'Document';
     }
 
+    payload.owner = req.userId;
     const doc = await documentService.createDocument(payload);
     logger.info('Document uploaded', {
       id: doc.id,
       title: doc.title,
       fileName: doc.fileName,
-      filePath: doc.filePath,
     });
     return res.status(201).json(doc);
   } catch (err) {
-    if (req.file?.path) {
-      await fs.unlink(req.file.path).catch((unlinkErr) => {
-        logger.warn('Failed to remove uploaded file after error', {
-          path: req.file.path,
-          error: unlinkErr.message,
-        });
-      });
+    return next(err);
+  }
+}
+
+async function getDocumentFile(req, res, next) {
+  try {
+    let filter;
+    if (req.userRole === 'agent') {
+      filter = { _id: req.params.id, owner: req.userId };
+    } else {
+      const agents = await User.find({ adminId: req.userId, role: 'agent' })
+        .select('_id')
+        .lean();
+      const allowedOwners = agents.map((a) => a._id);
+      allowedOwners.push(new mongoose.Types.ObjectId(req.userId));
+      filter = { _id: req.params.id, owner: { $in: allowedOwners } };
     }
+
+    const doc = await Document.findOne(filter).select(
+      '+fileData mimeType fileName title'
+    );
+    if (!doc || !doc.fileData) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const filename = doc.fileName || `${doc.title || 'document'}.pdf`;
+    res.setHeader('Content-Type', doc.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=\"${filename}\"`);
+    return res.send(Buffer.isBuffer(doc.fileData) ? doc.fileData : Buffer.from(doc.fileData));
+  } catch (err) {
     return next(err);
   }
 }
 
 async function deleteDocument(req, res, next) {
   try {
-    const doc = await documentService.deleteDocument(req.params.id);
+    let filter;
+    if (req.userRole === 'agent') {
+      filter = { _id: req.params.id, owner: req.userId };
+    } else {
+      const agents = await User.find({ adminId: req.userId, role: 'agent' })
+        .select('_id')
+        .lean();
+      const allowedOwners = agents.map((a) => a._id);
+      allowedOwners.push(new mongoose.Types.ObjectId(req.userId));
+      filter = { _id: req.params.id, owner: { $in: allowedOwners } };
+    }
+
+    const doc = await documentService.deleteDocument(filter);
     if (!doc) {
       logger.warn('Document not found for delete', { id: req.params.id });
       return res.status(404).json({ message: 'Document not found' });
     }
-    logger.info('Document deleted', { id: doc.id, filePath: doc.filePath });
+    logger.info('Document deleted', { id: doc.id });
     return res.sendStatus(204);
   } catch (err) {
     return next(err);
@@ -97,5 +160,6 @@ async function deleteDocument(req, res, next) {
 module.exports = {
   listDocuments,
   uploadDocument,
+  getDocumentFile,
   deleteDocument,
 };
